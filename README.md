@@ -1,9 +1,9 @@
 # Beat_Tracking
 Real-time Beat Tracking for LED Cube
-# Off-line result getting compare
-step 1:Run Tempo_detection.py which is used for getting dynamic tempo//
-step 2:Run Offline_Beattracking.py which is used for getting the result of the new methods//
-step 3:Run the jupyter notebook follow the code in Evaluation.py to do the result comparision
+## Off-line result getting compare
+#step 1:Run Tempo_detection.py which is used for getting dynamic tempo
+#step 2:Run Offline_Beattracking.py which is used for getting the result of the new methods
+#step 3:Run the jupyter notebook follow the code in Evaluation.py to do the result comparision
 # Raspberry Pi side code
 choice 1: use the madmom code discussed in Yikai's Thesis
 choice 2: use Real_time_BT.py
