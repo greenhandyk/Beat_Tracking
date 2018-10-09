@@ -1,0 +1,528 @@
+#include <Driver_1818_138.h>
+#include <Driver_74HC595.h>
+#include <Driver_3D8.h>
+#include <Driver_74HC138.h>
+#include <Controller_A3D8_Basic.h>
+#include <PinWrite.h>
+#include <Driver_TB62726.h>
+#include <DotMatrix.h>
+#include <Controller_A3D8.h>
+#include <DotMatrix3D.h>
+
+#include "DotMatrix3D.h"
+#include "Driver_3D8.h"
+
+#define BYTE_LENGTH 64
+DotMatrix3D dm(1);
+Driver_3D8 cube(dm, 9, 10, 17, 8, 11, 5, 4, 3);
+byte * cache;
+
+const int PiPin = 12;
+int PiState = 0;
+ int j = -2;
+ int m = 0;
+uint8_t led_top = 6;
+uint8_t led_bottom = 7;
+
+const uint8_t PROGMEM PATTERN_LOVE[] =
+{ 0x00, 0x81, 0x81, 0xFF, // I
+    0x38, 0xFC, 0xFE, 0x3F, //heart
+    0x00, 0xFF, 0xFF, 0x01, // U
+    };
+
+void setup()
+{
+  pinMode(PiPin, INPUT);
+  pinMode(led_top, OUTPUT);
+  pinMode(led_bottom, OUTPUT);
+
+  digitalWrite(led_top, HIGH);
+  digitalWrite(led_bottom, HIGH);
+
+  TCCR2B = (TCCR2B & 0xf8) | 0x02;
+  cache = new byte(BYTE_LENGTH);
+  dm.clear(0x00);
+  cube.setBrightness(0xff);
+}
+
+
+
+void animationFlash1(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x01;
+  dm.clear(value);
+}
+
+void animationFlash2(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x03;
+  dm.clear(value);
+}
+void animationFlash4(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x0f;
+  dm.clear(value);
+}
+void animationFlash6(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x3f;
+  dm.clear(value);
+}
+void animationFlash7(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x08;
+  dm.clear(value);
+}
+//亮某一面
+// light one specific face
+void animationFlash8(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x08 ;
+  dm.setByte(value, 0xff);
+  //byte value =  0xff;
+  dm.clear(value);
+}
+
+void animationFlash9(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0x00 ;
+  dm.setByte(value, 0xff);
+  //byte value =  0xff;
+  dm.clear(value);
+}
+//亮某一面
+void animationFlash(word k)
+{
+  //byte value = k & 0x01 ? 0xff : 0x00;
+  byte value =  0xff;
+  dm.clear(value);
+}
+
+
+//sometimes on sometimes off
+void animationBreathe(word k)
+{
+  k = k % 0x80;
+  byte brightness = k < 0x40 ? 0xff - (k << 2) : (k << 2) - 0xff;
+
+  cube.setBrightness(brightness);
+}
+
+//一面面扫不存留之前的灯
+// Scaning from oneside to another side
+void animationFacetScan(word k)
+{
+  byte value = _BV(k%8);
+  dm.clear(value);
+}
+//single light
+void animationSinglelight(word k)
+{
+  dm.setMoveDirection(DotMatrix3D::Z_POSI);
+  dm.move(false);
+  //for (byte i = 0; i < random(4); i++)
+  //{
+    byte x = 7;
+    byte y = 7;
+    dm.setDot(x, y, 0);
+  //}
+}
+//零星的点从一面到另一面
+//Scaning from oneside to another side but only the point light
+void animationFlowZPosi(word k)
+{
+  dm.setMoveDirection(DotMatrix3D::Z_POSI);
+  dm.move(false);
+  for (byte i = 0; i < 4; i++)
+  {
+    byte x = 1;
+    byte y = 3;
+    dm.setDot(x, y, 0);
+  }
+}
+// 一面面扫存留之前的灯
+//Scaning from oneside to another side but conserve the original light
+void animationBlockScan(word k)
+{
+  k = k % 8;
+  byte value = _BV(k+1) - 1;
+  dm.clear(value);
+}
+//完整的零星的点从一面到另一面，速度更快；
+//MoveSideQuickly
+void animationMoveSideQuick(word k)
+{
+  k %= 16;
+
+  if (k % 8 == 0)
+  {
+    for (byte i = 0; i < BYTE_LENGTH; i++)
+    {
+      cache[i] = _BV(random(8));
+    }
+  }
+
+  if (k < 8)
+    for (byte i = 0; i < BYTE_LENGTH; i++)
+    {
+      byte temp = dm.getByte(i);
+      if (dm.getByte(i) < cache[i])
+        dm.setByte(i, temp << 1);
+    }
+  else
+  {
+    for (byte i = 0; i < BYTE_LENGTH; i++)
+    {
+      byte temp = dm.getByte(i);
+      if (dm.getByte(i) < 0x80)
+        dm.setByte(i, temp << 1);
+    }
+  }
+}
+//3d 扫射
+// 3d moving
+void animationWave3D(word k)
+{
+  k %= 16;
+  byte value = k < 8 ? k : 15 - k;
+
+  for (byte i = 0; i < 8; i++)
+    cache[i] = dm.getByte(i);
+
+  dm.setMoveDirection(DotMatrix3D::Y_POSI);
+  dm.move(false);
+
+  for (byte i = 0; i < 8; i++)
+    dm.setByte(i, cache[i]);
+
+  for (byte i = 7; i; i--)
+    dm.setByte(i, dm.getByte(i - 1));
+
+  dm.setByte(0x00, _BV(value));
+}
+//2D face waving
+void animationWave2D(word k)
+{
+  k %= 16;
+  byte value = k < 8 ? k : 15 - k;
+
+  dm.setMoveDirection(DotMatrix3D::Y_POSI);
+  dm.move(false);
+
+  dm.setByte(value, 0xff);
+}
+//乱转
+// spining
+void animationDance(word k)
+{
+  if (k == 0)
+  {
+    cache[0] = 0;
+    cache[1] = 0;
+  }
+
+  char x = cache[0];
+  char y = cache[1];
+
+  dm.setMoveDirection(DotMatrix3D::Z_POSI);
+  dm.move();
+
+  char vx = random(3) - 1;
+  char vy = random(3) - 1;
+
+  x += vx;
+  y += vy;
+
+  if (x >= 8 || x < 0)
+  {
+    x -= vx + vx;
+  }
+
+  if (y >= 8 || y < 0)
+  {
+    y -= vy + vy;
+  }
+
+  cache[0] = x;
+  cache[1] = y;
+
+  dm.setDot(x, y, 0);
+}
+//平面旋转
+// face turing
+void animationWaveRotate(word k)
+{
+  k %= 28;
+  dm.setMoveDirection(DotMatrix3D::X_POSI);
+  dm.move(false);
+
+  byte temp = k % 7;
+  cache[0] = 0;
+  cache[1] = temp;
+  cache[2] = 7;
+  cache[3] = 7 - temp;
+
+  byte i = k / 7;
+
+  dm.setLine(cache[i % 4], cache[(i + 1) % 4], cache[(i + 2) % 4],
+      cache[(i + 3) % 4]);
+
+}
+
+
+void callAnimation(void (*p)(word), word span, word times, byte init_value,
+    Driver_3D8::ScanMode mode)
+{
+  static word frame_id = 0;
+
+  cube.setMode(mode);
+  dm.clear(init_value);
+  //让一面全亮
+  // one face all on
+  while (times--)
+  {
+    (*p)(frame_id++);
+    cube.display(span);
+  }
+  frame_id = 0;
+}
+
+// main function for catching the beat with time
+void callAnimationInModes0(void (*p)(word), word span, word times,
+    byte init_value)
+{
+  for (byte i = 0; i < 3; i++)
+    callAnimation(p, span, times, init_value, Driver_3D8::ZXY);
+}
+
+void callAnimationInModes1(void (*p)(word), word span, word times,
+    byte init_value)
+{
+  //for (byte i = 0; i < 3; i++)
+    callAnimation(p, span, times, init_value, Driver_3D8::ZXY);
+}
+
+void callAnimationInModes2(void (*p)(word), word span, word times,
+    byte init_value)
+{
+  //for (byte i = 0; i < 3; i++)
+    callAnimation(p, span, times, init_value, Driver_3D8::XYZ);
+}
+
+void callAnimationInModes3(void (*p)(word), word span, word times,
+    byte init_value)
+{
+  //for (byte i = 0; i < 3; i++)
+    callAnimation(p, span, times, init_value, Driver_3D8::YZX);
+}
+
+void loop() {
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==-2 )
+  {
+    j = j+1;
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==-1 )
+  {
+    j = j+1;
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==0 )
+  {
+    j = j+1;
+  callAnimation(animationFlash7, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==1 )
+  {
+    j = j+1;
+  callAnimation(animationFlash7, 0x03, 0x08, 0x00, Driver_3D8::XYZ);
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==2 )
+  {
+    j = j+1;
+  callAnimation(animationFlash7, 0x03, 0x08, 0x00, Driver_3D8::ZXY);
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==3 )
+  {
+    j = j+1;
+  callAnimation(animationFlash1, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==4 )
+  {
+    j = j+1;
+  callAnimation(animationFlash2, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==5 )
+  {
+    j = j+1;
+  callAnimation(animationFlash4, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==6 )
+  {
+    j = j+1;
+  callAnimation(animationFlash6, 0x04, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==7 )
+  {
+    j = j+1;
+  callAnimation(animationFlash, 0x04, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==8 )
+  {
+    j = j+1;
+    callAnimationInModes1(animationFacetScan, 0x02, 0x08, 0x00);
+    //callAnimationInModes(animationSinglelight, 0x0f, 0x08, 0x00);
+    //callAnimation(animationFlash, 0x10, 0x08, 0x00, Driver_3D8::XYZ);
+   // callAnimation(animationBreathe, 0x01, 0x81, 0xff, Driver_3D8::YZX);
+  //callAnimation(animationFlash, 0x04, 0x08, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+
+  if (PiState == HIGH && j ==9 )
+  {
+    j = j+1;
+  callAnimationInModes2(animationFacetScan, 0x02, 0x08, 0x00);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==10 )
+  {
+    j = j+1;
+    callAnimationInModes3(animationFacetScan, 0x02, 0x08, 0x00);
+    //callAnimationInModes2(animationSinglelight, 0x0f, 0x08, 0x00);
+  //callAnimationInModes(animationMoveSideQuick, 0x04, 0x10, 0x01);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==11 )
+  {
+    j = j+1;
+  callAnimationInModes1(animationWave2D, 0x03, 14, 0x00);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==12 )
+  {
+    j = j+1;
+  callAnimationInModes2(animationWave2D, 0x03, 14, 0x00);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==13 )
+  {
+    j = j+1;
+  callAnimationInModes3(animationWave2D, 0x03, 14, 0x00);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==14 )
+  {
+    j = j+1;
+  callAnimation(animationWave3D, 0x02, 14*2, 0x00, Driver_3D8::ZXY);
+  }
+
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==15 )
+  {
+    j = j+1;
+  callAnimation(animationWave3D, 0x02, 14*2, 0x00, Driver_3D8::XYZ);
+  }
+
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==16 )
+  {
+    j = j+1;
+  callAnimation(animationWave3D, 0x02, 14*2, 0x00, Driver_3D8::YZX);
+  }
+
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==17 )
+  {
+    j = j+1;
+  callAnimation(animationWaveRotate, 0x02, 14, 0x00, Driver_3D8::XYZ);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==18 )
+  {
+    j = j+1;
+  callAnimation(animationWaveRotate, 0x02, 14, 0x00, Driver_3D8::YZX);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==19 )
+  {
+    j = j+1;
+  callAnimation(animationWaveRotate, 0x02, 14, 0x00, Driver_3D8::ZXY);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==20 )
+  {
+    j = j+1;
+  callAnimationInModes1(animationMoveSideQuick, 0x02, 0x010, 0x01);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==21 )
+  {
+    j = j+1;
+  callAnimationInModes2(animationMoveSideQuick, 0x02, 0x010, 0x01);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==22 )
+  {
+    j = j+1;
+  callAnimationInModes3(animationMoveSideQuick, 0x02, 0x010, 0x01);
+  }
+  if (PiState == HIGH && j ==23 )
+  {
+    j = j+1;
+
+  callAnimation(animationDance, 0x02, 0x80, 0x00, Driver_3D8::ZXY);
+  }
+  if (PiState == HIGH && j ==24 )
+  {
+    j = j+1;
+
+  callAnimation(animationBreathe, 0x01, 0x81, 0xff, Driver_3D8::XYZ);
+  }
+  PiState = digitalRead(PiPin);
+  if (PiState == HIGH && j ==25 )
+  {
+    j = j+1;
+  callAnimation(animationFlash9, 0x03, 0x08, 0x00, Driver_3D8::YZX);
+  }
+
+
+  //PiState = digitalRead(PiPin);
+  //if (PiState == HIGH && j ==4 )
+  //{
+    //j = j+1;
+  //callAnimation(animationDance, 0x02, 0x80, 0x00, Driver_3D8::ZXY);
+  //}
+  //if (PiState == HIGH)
+  //{
+  //callAnimationInModes(animationSinglelight, 0x0f, 0x01, 0x00);
+  //}
+  //if (PiState == HIGH)
+    //{
+  //callAnimation(animationBreathe, 0x01, 0x41, 0xff, Driver_3D8::XYZ);
+    //}
+  // put your main code here, to run repeatedly:
+
+}
