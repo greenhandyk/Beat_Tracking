@@ -86,5 +86,5 @@ def getdynamictempo():
     #this is try to print the special tempo and time
     print(actual_tempo)
     print(special_time)
-    # return the critical point of tempo and time 
+    # return the critical point of tempo and times
     return(y, sr, actual_tempo, special_time)
