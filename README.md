@@ -1,3 +1,5 @@
+# Package installation
+Lots of package needed to install, all mentioned in the Final year thesis's appendix part
 # Beat_Tracking
 Real-time Beat Tracking for LED Cube used for Final year thesis
 # Off-Line Result 
