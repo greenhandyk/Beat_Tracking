@@ -15,6 +15,7 @@ step 2: you need to download the driver code in dot-matrix https://github.com/ag
 step 3: run the arduino LED_main_control.h  
 # Data information
 Data come from 2017 IEEE Signal Processing Cup 25 open songs, 25 closed songs, and 33 challenge songs.  
-The reference beat time dataset download from 2017 IEEE Signal Processing Cup official website
+The reference beat time dataset download from 2017 IEEE Signal Processing Cup official website  
+https://signalprocessingsociety.org/ieee-signal-processing-cup-2017-real-time-beat-tracking-challenge
 # Futher information please take reference in Yikai's Thesis 
 If you need any discussion or suggestion please contact: yangyikai28@gmail.com
