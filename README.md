@@ -19,3 +19,4 @@ The reference beat time dataset download from 2017 IEEE Signal Processing Cup of
 https://signalprocessingsociety.org/ieee-signal-processing-cup-2017-real-time-beat-tracking-challenge
 # Futher information please take reference in Yikai's Thesis 
 If you need any discussion or suggestion please contact: yangyikai28@gmail.com
+The vedio information is on https://www.youtube.com/watch?v=dNjxM1nOdy0
