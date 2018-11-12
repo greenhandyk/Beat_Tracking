@@ -7,7 +7,7 @@ import time
 from multiprocessing import Process, Queue
 import os, time, random
 from tempodetect import tempo
-from offline import find_location
+from Offine_Beattracking import find_location
 
 
 
