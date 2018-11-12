@@ -7,7 +7,7 @@ import time
 from multiprocessing import Process, Queue
 import os, time, random
 from tempodetect import tempo
-
+from offline import find_location
 
 
 
@@ -85,10 +85,27 @@ def dataout(q):
                 frames0 = np.array(frames)
                 # change the data types 
                 frames_first = librosa.util.buf_to_float(frames0, dtype=np.float32)
+                (y, sr, actual_tempo, special_time) = getdynamictempo()
                 # get the onset envelop
                 onset_envelope_first = librosa.onset.onset_strength(y=frames_first, sr=sr, hop_length=512, n_fft=2048)
+                #main function for track the beats
+                for i in range(len(actual_tempo)):
+                    temporeal = actual_tempo[i]
+                    if i == 0:
+                        special_Single_left = float(0)
+                        special_Single_right = special_time[i]
+                    elif i > 0 and i < len(actual_tempo)-1:
+                        special_Single_left = special_time[i-1]
+                        special_Single_right = special_time[i]
+                    elif i == len(actual_tempo)-1:
+                        special_Single_left = special_time[i - 1]
+                        special_Single_right = float(len(y)/sr)
+                    (frame_f, time_f) = find_location(spectral_novelty, temporeal, special_Single_left,special_Single_right,frame_f=frame_f,time_f = time_f)
+                #print(frame_f)
+                print(time_f)
+                beats = time_f
                 # Get the tempo and beat from dynamic program(optional)
-                tempo, beats = librosa.beat.beat_track(frames_first, sr=sr, start_bpm=60, units='time')
+                #tempo, beats = librosa.beat.beat_track(frames_first, sr=sr, start_bpm=60, units='time')
                 # get the tempo and beat use the new methods(optional)
                 #(frame_f, time_f) = find_location(spectral_novelty, temporeal, special_Single_left,special_Single_right,frame_f=frame_f,time_f = time_f)
                 # change back to false flag
